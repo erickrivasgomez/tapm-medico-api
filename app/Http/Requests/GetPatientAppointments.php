@@ -3,9 +3,8 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Http\JsonResponse;
 
-class RegisterPatient extends FormRequest
+class GetPatientAppointments extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,9 +24,7 @@ class RegisterPatient extends FormRequest
     public function rules()
     {
         return [
-            'nombre' => 'required|max:30',
-            'username' => 'required|max:20|unique:patients',
-            'password' => 'required',
+            'patient_id' => 'required|exists:patients',
         ];
     }
 }

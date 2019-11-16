@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
 use Validator;
 use App\Patient;
 use App\Http\Requests\RegisterPatient;
+use App\Http\Requests\GetPatientAppointments;
+use App\Http\Requests\LoginPatient;
 
 class medicoController extends Controller
 {
@@ -25,27 +28,67 @@ class medicoController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function registerPatient(Request $request)
+    public function registerPatient(RegisterPatient $request)
     {
-        $reglas = array(
-            'nombre' => 'required',
-        );
+        $respuesta = null;
 
-        $validator = Validator::make($request->all(), $reglas);
-        $validacion = $validator->validate();
+        $patient = Patient::create([
+            "nombre" => $request->input('nombre'),
+            "username" => $request->input('username'),
+            "password" => bcrypt($request->input('password'))
+        ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors'=>$validator->errors()]);
-            
+        $respuesta = array([
+            "message" => "¡Paciente registrado correctamente!",
+            "data" => [
+                "paciente" => [
+                    "nombre" => $patient->nombre,
+                    "username" => $request->username,
+                ]
+            ]
+        ]);
+        return $respuesta;
+    }
+
+    public function loginPatient(LoginPatient $request)
+    {
+        $respuesta = null;
+        $patient = Patient::where('username', $request->input('username'))->first();
+
+        if (Hash::check($request->input('password'), $patient->password)) {
+            $respuesta = array([
+                "message" => "¡Sesión iniciada con éxito!",
+                "data" => [
+                    "paciente" => [
+                        "patient_id" => $patient->patient_id,
+                        "nombre" => $patient->nombre,
+                        "username" => $patient->username,
+                    ]
+                ]
+            ]);
         } else {
-            return response()->json($request->all());
-
-            $patient = Patient::create([
-                'nombre' => \request('nombre'),
-                'email' => \request('email'),
-                'password' => \request('password'),
+            $respuesta = array([
+                "message" => "Contraseña incorrecta.",
+                "data" => []
             ]);
         }
+
+        return $respuesta;
+    }
+
+    public function getPatientAppointments(GetPatientAppointments $request)
+    {
+        $respuesta = null;
+        $patient = Patient::find($request->input('patient_id'));
+
+        $respuesta = array([
+            "message" => "Citas obtenidas correctamente.",
+            "data" => [
+                "citas" => $patient->appointments,
+            ]
+        ]);
+
+        return $respuesta;
     }
 
     public function rp(RegisterPatient $request)
@@ -59,7 +102,6 @@ class medicoController extends Controller
 
         if ($validator->fails()) {
             return $validacion->errors();
-            
         } else {
             return $request->all();
         }

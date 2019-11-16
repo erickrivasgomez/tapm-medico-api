@@ -21,3 +21,5 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 Route::post('rp', 'medicoController@rp')->name('rp');
 
 Route::post('registerPatient', 'medicoController@registerPatient')->name('registerPatient');
+Route::post('loginPatient', 'medicoController@loginPatient')->name('loginPatient');
+Route::post('getPatientAppointments', 'medicoController@getPatientAppointments')->name('getPatientAppointments');

@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
 use Validator;
 use App\Patient;
-use App\Http\Requests\RegisterPatient;
-use App\Http\Requests\GetPatientAppointments;
-use App\Http\Requests\LoginPatient;
 
 class medicoController extends Controller
 {
@@ -28,9 +25,24 @@ class medicoController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function registerPatient(RegisterPatient $request)
+    public function registerPatient(Request $request)
     {
         $respuesta = null;
+
+        $reglas = [
+            'nombre' => 'required|max:30',
+            'username' => 'required|max:20|unique:patients',
+            'password' => 'required',
+        ];
+        $validator = Validator::make($request->all(), $reglas);
+        if ($validator->fails()) {
+            $respuesta = json_encode([
+                "message" => "Error en datos enviados",
+                "errors" => $validator->errors(),
+                "data" => []
+            ]);
+            return $respuesta;
+        }
 
         $patient = Patient::create([
             "nombre" => $request->input('nombre'),
@@ -38,8 +50,9 @@ class medicoController extends Controller
             "password" => bcrypt($request->input('password'))
         ]);
 
-        $respuesta = array([
+        $respuesta = json_encode([
             "message" => "¡Paciente registrado correctamente!",
+            "errors" => [],
             "data" => [
                 "paciente" => [
                     "nombre" => $patient->nombre,
@@ -50,14 +63,31 @@ class medicoController extends Controller
         return $respuesta;
     }
 
-    public function loginPatient(LoginPatient $request)
+    public function loginPatient(Request $request)
     {
         $respuesta = null;
+
+        $reglas = [
+            'username' => 'required|exists:patients',
+            'password' => 'required',
+        ];
+        $validator = Validator::make($request->all(), $reglas);
+
+        if ($validator->fails()) {
+            $respuesta = json_encode([
+                "message" => "Error en datos enviados",
+                "errors" => $validator->errors(),
+                "data" => []
+            ]);
+            return $respuesta;
+        }
+
         $patient = Patient::where('username', $request->input('username'))->first();
 
         if (Hash::check($request->input('password'), $patient->password)) {
-            $respuesta = array([
+            $respuesta = json_encode([
                 "message" => "¡Sesión iniciada con éxito!",
+                "errors" => [],
                 "data" => [
                     "paciente" => [
                         "patient_id" => $patient->patient_id,
@@ -67,8 +97,13 @@ class medicoController extends Controller
                 ]
             ]);
         } else {
-            $respuesta = array([
+            $respuesta = json_encode([
                 "message" => "Contraseña incorrecta.",
+                "errors" => [
+                    "Contraseña" => [
+                        "Contraseña incorrecta."
+                    ]
+                ],
                 "data" => []
             ]);
         }
@@ -76,35 +111,34 @@ class medicoController extends Controller
         return $respuesta;
     }
 
-    public function getPatientAppointments(GetPatientAppointments $request)
+    public function getPatientAppointments(Request $request)
     {
         $respuesta = null;
+
+        $reglas = [
+            'patient_id' => 'required|exists:patients',
+        ];
+        $validator = Validator::make($request->all(), $reglas);
+        if ($validator->fails()) {
+            $respuesta = json_encode([
+                "message" => "Error en datos enviados",
+                "errors" => $validator->errors(),
+                "data" => []
+            ]);
+            return $respuesta;
+        }
+
         $patient = Patient::find($request->input('patient_id'));
 
-        $respuesta = array([
+        $respuesta = json_encode([
             "message" => "Citas obtenidas correctamente.",
+            "errors" => [],
             "data" => [
                 "citas" => $patient->appointments,
             ]
         ]);
 
         return $respuesta;
-    }
-
-    public function rp(RegisterPatient $request)
-    {
-        $reglas = array(
-            'nombre' => 'required',
-        );
-
-        $validator = Validator::make($request->all(), $reglas);
-        $validacion = $validator->validate();
-
-        if ($validator->fails()) {
-            return $validacion->errors();
-        } else {
-            return $request->all();
-        }
     }
 
     /**
